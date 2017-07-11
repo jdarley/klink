@@ -1,4 +1,4 @@
-package ditto
+package baker
 
 import (
 	"fmt"
@@ -12,13 +12,13 @@ import (
 	conf "mixrad.io/klink/conf"
 	console "mixrad.io/klink/console"
 	jenkins "mixrad.io/klink/jenkins"
-	onix "mixrad.io/klink/onix"
+	lister "mixrad.io/klink/lister"
 )
 
 func Init() {
 	common.Register(
-		common.Component{"ditto", Helpers,
-			"Various helpers; lock, unlock, clean, build public and ent base amis", "DITTOS"},
+		common.Component{"baker", Helpers,
+			"Various helpers; lock, unlock, clean, build public and ent base amis", "BAKERS"},
 		common.Component{"bake", LiveBake,
 			"{app} {version} [-t {hvm,para}] Bakes an AMI for {app} with version {version}", "APPS"},
 		common.Component{"allow-prod", AllowProd,
@@ -37,7 +37,7 @@ func Init() {
 			"Lists the latest base, parent and public amis", ""})
 }
 
-func dittoUrl(end string) string {
+func bakerUrl(end string) string {
 	base := os.Getenv("DITTO_URL")
 	if base == "" {
 		base = conf.BakerUrl
@@ -46,7 +46,7 @@ func dittoUrl(end string) string {
 }
 
 func bakeUrl(app string, version string) string {
-	return fmt.Sprintf(dittoUrl("/bake/%s/%s"), app, version)
+	return fmt.Sprintf(bakerUrl("/bake/%s/%s"), app, version)
 }
 
 func AllowProd(args common.Command) {
@@ -54,7 +54,7 @@ func AllowProd(args common.Command) {
 		console.Fail("Application must be provided as the second positional argument")
 	}
 
-	url := dittoUrl("/make-public/" + args.SecondPos)
+	url := bakerUrl("/make-public/" + args.SecondPos)
 
 	resp, err := http.Post(url, "application/json", nil)
 	if err != nil {
@@ -85,7 +85,7 @@ func DoBake(url string, retries int) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 503 {
-		console.Fail("Ditto is currently not available. This is most likely due it being redeployed. If it's not back in 10 minutes ask in Campfire or speak to Ben Griffiths.")
+		console.Fail("Baker is currently not available. This is most likely due it being redeployed. If it's not back in 10 minutes raise the alarm.")
 	} else if resp.StatusCode == 404 {
 		if retries > 0 {
 			fmt.Println("RPM isn't yet available, retrying in 5 seconds")
@@ -95,7 +95,7 @@ func DoBake(url string, retries int) {
 			console.Fail("RPM doesn't appear to be available after retrying. Wait a bit longer or check your version is correct / yum repo has it available")
 		}
 	} else if resp.StatusCode != 200 {
-		fmt.Printf("Got %d response calling ditto to bake ami.\n", resp.StatusCode)
+		fmt.Printf("Got %d response calling baker to bake ami.\n", resp.StatusCode)
 		io.Copy(os.Stdout, resp.Body)
 		panic("\nFailed to bake ami.")
 	} else {
@@ -115,8 +115,8 @@ func Bake(args common.Command, bUrl bakeUrlFn) {
 		console.Fail("Application must be supplied as the second argument")
 	}
 
-	if !onix.AppExists(app) {
-		console.Fail(fmt.Sprintf("Application '%s' does not exist. It's your word against onix!",
+	if !lister.AppExists(app) {
+		console.Fail(fmt.Sprintf("Application '%s' does not exist. It's your word against lister!",
 			app))
 	}
 
@@ -138,7 +138,7 @@ func Bake(args common.Command, bUrl bakeUrlFn) {
 	if args.Type != "" {
 		url += "?virt-type=" + virtType
 	} else {
-		bakeType := onix.GetOptionalProperty(app, "bakeType")
+		bakeType := lister.GetOptionalProperty(app, "bakeType")
 		if bakeType != "" {
 			url += "?virt-type=" + bakeType
 		} else {
@@ -175,7 +175,7 @@ func FindAmis(args common.Command) {
 	}
 
 	amis := make([]Ami, 20)
-	common.GetJson(dittoUrl(fmt.Sprintf("/amis/%s", application)), &amis)
+	common.GetJson(bakerUrl(fmt.Sprintf("/amis/%s", application)), &amis)
 
 	for key := range amis {
 		fmt.Print(amis[key].Name, " : ")
@@ -189,7 +189,7 @@ func FindAmis(args common.Command) {
 
 func LatestAmiFor(application string) Ami {
 	amis := make([]Ami, 10)
-	common.GetJson(dittoUrl(fmt.Sprintf("/amis/%s", application)), &amis)
+	common.GetJson(bakerUrl(fmt.Sprintf("/amis/%s", application)), &amis)
 
 	latestAmi := amis[0]
 	latestAmi.Version = parseVersionFrom(latestAmi)
@@ -226,7 +226,7 @@ func HelperNames() []string {
 	return []string{"lock", "unlock", "clean", "entertainment", "public", "inprogress"}
 }
 
-// ditto helps to lock, unlock and clean amis
+// Baker helps to lock, unlock and clean amis
 // not intended to be a part of the public klink functionality
 func Helpers(args common.Command) {
 	switch args.SecondPos {
@@ -235,16 +235,16 @@ func Helpers(args common.Command) {
 			console.Fail("Pass a message you fool.")
 		}
 		lock := Lock{args.ThirdPos}
-		lockUrl := dittoUrl("/lock")
+		lockUrl := bakerUrl("/lock")
 		fmt.Println(common.PostJson(lockUrl, lock))
 	case "unlock":
-		unlockUrl := dittoUrl("/lock")
+		unlockUrl := bakerUrl("/lock")
 		common.Delete(unlockUrl)
 		console.Green()
 		fmt.Println("unlocked")
 		console.Reset()
 	case "clean":
-		cleanUrl := dittoUrl("/clean/")
+		cleanUrl := bakerUrl("/clean/")
 		if args.ThirdPos == "" {
 			cleanUrl += "all"
 		} else {
@@ -252,13 +252,13 @@ func Helpers(args common.Command) {
 		}
 		fmt.Println(common.PostJson(cleanUrl, nil))
 	case "entertainment":
-		bakeUrl := dittoUrl("/bake/entertainment-ami")
+		bakeUrl := bakerUrl("/bake/entertainment-ami")
 		DoBake(bakeUrl, 120)
 	case "public":
-		bakeUrl := dittoUrl("/bake/public-ami")
+		bakeUrl := bakerUrl("/bake/public-ami")
 		DoBake(bakeUrl, 120)
 	case "inprogress":
-		progUrl := dittoUrl("/inprogress")
+		progUrl := bakerUrl("/inprogress")
 		fmt.Println(common.GetString(progUrl))
 	default:
 		console.Fail("Requires a second arg: lock, unlock, clean, entertainment, public or inprogress")
@@ -278,12 +278,12 @@ func DeleteAmi(args common.Command) {
 	}
 	common.FailIfNotAmi(ami)
 
-	common.Delete(dittoUrl(fmt.Sprintf("/%s/amis/%s", service, ami)))
+	common.Delete(bakerUrl(fmt.Sprintf("/%s/amis/%s", service, ami)))
 	console.Green()
 	fmt.Println("That appears to have worked, the ami will disappear in a few minutes")
 	console.Reset()
 }
 
 func ListAmis(_ common.Command) {
-	console.MaybeJQS(common.GetString(dittoUrl("/amis")))
+	console.MaybeJQS(common.GetString(bakerUrl("/amis")))
 }

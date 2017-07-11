@@ -11,7 +11,7 @@ import (
 	jsonq "github.com/jmoiron/jsonq"
 	common "mixrad.io/klink/common"
 	console "mixrad.io/klink/console"
-	onix "mixrad.io/klink/onix"
+	lister "mixrad.io/klink/lister"
 )
 
 func Init() {
@@ -85,7 +85,7 @@ func CreateBuild(path string) {
 
 // Returns the release path for the supplied app
 func jobPath(app string, property string) string {
-	path := onix.GetProperty(app, property)
+	path := lister.GetProperty(app, property)
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}

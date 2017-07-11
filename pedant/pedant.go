@@ -1,4 +1,4 @@
-package shuppet
+package pedant
 
 import (
 	"fmt"
@@ -16,11 +16,11 @@ func Init() {
 			"{app} {env} Apply infrastructure configuration for {app} in {env}", "APPS|ENVS"})
 }
 
-func shuppetUrl(end string) string {
+func pedantUrl(end string) string {
 	return conf.PedanticUrl + end
 }
 
-// Returns all information stored in Shuppet about the supplied application and environment
+// Returns all information stored in Pedant about the supplied application and environment
 func ShowInfra(args common.Command) {
 	if args.SecondPos == "" {
 		console.Fail("You must supply an app as the second positional argument")
@@ -31,7 +31,7 @@ func ShowInfra(args common.Command) {
 	}
 	env := args.ThirdPos
 
-	infraUrl := fmt.Sprintf(shuppetUrl("/envs/%s/apps/%s"), env, app)
+	infraUrl := fmt.Sprintf(pedantUrl("/envs/%s/apps/%s"), env, app)
 	console.MaybeJQS(common.GetString(infraUrl))
 }
 
@@ -46,6 +46,6 @@ func ApplyInfra(args common.Command) {
 	}
 	env := args.ThirdPos
 
-	infraUrl := fmt.Sprintf(shuppetUrl("/envs/%s/apps/%s/apply"), env, app)
+	infraUrl := fmt.Sprintf(pedantUrl("/envs/%s/apps/%s/apply"), env, app)
 	console.MaybeJQS(common.GetString(infraUrl))
 }

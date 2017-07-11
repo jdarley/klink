@@ -96,7 +96,7 @@ func unableToFixConnection() {
 	fmt.Println("This can't go through a proxy. If it's trying - that's your problem.")
 	fmt.Println("Usually the fix is putting export no_proxy=$no_proxy,brislabs.com")
 	fmt.Println("into your .bashrc and either sourcing it or starting a new shell.")
-	fmt.Println("It's also possible that ditto is down. If so that's your problem.")
+	fmt.Println("It's also possible that baker is down. If so that's your problem.")
 	console.Reset()
 	doctorOut()
 }

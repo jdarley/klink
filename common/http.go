@@ -55,7 +55,7 @@ func PostJson(url string, body interface{}, doToReq ...func(*http.Request)) stri
 	if resp.StatusCode == 200 || resp.StatusCode == 201 {
 		return string(responseBody)
 	} else if resp.StatusCode == 409 {
-		fmt.Println("Got a 409 response, maybe exploud is being deployed?")
+		fmt.Println("Got a 409 response, maybe maestro is being deployed?")
 	}
 	fmt.Println(string(responseBody))
 	panic(fmt.Sprintf("%d response calling URL: ", resp.StatusCode))

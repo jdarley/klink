@@ -1,4 +1,4 @@
-package exploud
+package maestro
 
 import (
 	"encoding/json"
@@ -14,8 +14,8 @@ import (
 	common "mixrad.io/klink/common"
 	conf "mixrad.io/klink/conf"
 	console "mixrad.io/klink/console"
-	ditto "mixrad.io/klink/ditto"
-	onix "mixrad.io/klink/onix"
+	baker "mixrad.io/klink/baker"
+	lister "mixrad.io/klink/lister"
 	props "mixrad.io/klink/props"
 )
 
@@ -23,7 +23,7 @@ const latestVersionString = "latest"
 
 func Init() {
 	common.Register(
-		common.Component{"deploy", Exploud,
+		common.Component{"deploy", Maestro,
 			"{app} {env} [{ami}] Deploy the AMI {ami} for {app} to {env}. (If no ami is specified, the latest is assumed.)", "APPS|ENVS"},
 		common.Component{"watch", Watch,
 			"{id} Resume watching the deployment with the supplied id", ""},
@@ -45,15 +45,15 @@ func Init() {
 			"{app} {env} {filter} -f format [text|json] -S status [stopped|running|terminated]", "APPS|ENVS"})
 }
 
-// Returns explouds url with the supplied string appended
-func exploudUrl(end string) string {
+// Returns maestros url with the supplied string appended
+func maestroUrl(end string) string {
 	return conf.MaestroUrl + end
 }
 
 // Returns a jsonq object with information about the boxes running
 // for the supplied application and environment
 func JsonBoxes(app string, env string, i []interface{}) {
-	describeUrl := exploudUrl("/describe-instances/" + app + "/" + env)
+	describeUrl := maestroUrl("/describe-instances/" + app + "/" + env)
 	common.GetJson(describeUrl, &i)
 }
 
@@ -81,7 +81,7 @@ func Boxes(args common.Command) {
 
 	filter := args.FourthPos
 
-	describeUrl := exploudUrl("/describe-instances/" + app + "/" + env)
+	describeUrl := maestroUrl("/describe-instances/" + app + "/" + env)
 
 	if args.Status != "" {
 		describeUrl += "?state=" + args.Status
@@ -118,9 +118,9 @@ func Boxes(args common.Command) {
 
 }
 
-// AppExists returns true if the application exists according to exploud
+// AppExists returns true if the application exists according to maestro
 func AppExists(appName string) bool {
-	return common.Head(exploudUrl("/applications/" + appName))
+	return common.Head(maestroUrl("/applications/" + appName))
 }
 
 // ************************************************
@@ -158,16 +158,16 @@ func validateDeploymentArgs(args common.Command) {
 	}
 	if !AppExists(app) {
 		console.Fail(
-			fmt.Sprintf("Application \"%s\" does not exist. It's your word against exploud.", app))
+			fmt.Sprintf("Application \"%s\" does not exist. It's your word against maestro.", app))
 	}
 
 	env := args.ThirdPos
 	if env == "" {
 		console.Fail("Must supply an environment as third postional argument.")
-	} else if !onix.KnownEnvironment(env) {
+	} else if !lister.KnownEnvironment(env) {
 		console.Fail(
 			fmt.Sprintf("Third argument \"%s\" must be a known environment. %s.",
-				env, onix.GetEnvironments(env)))
+				env, lister.GetEnvironments(env)))
 	}
 }
 
@@ -203,12 +203,12 @@ func Deployments(args common.Command) {
 	app := args.SecondPos
 	env := args.ThirdPos
 	if app == "" {
-		fmt.Println(common.GetString(exploudUrl("/in-progress")))
+		fmt.Println(common.GetString(maestroUrl("/in-progress")))
 	} else {
 		if env == "" {
 			env = "poke"
 		}
-		url := exploudUrl("/deployments?application=" + app + "&environment=" + env)
+		url := maestroUrl("/deployments?application=" + app + "&environment=" + env)
 		fmt.Println(common.GetString(url))
 	}
 }
@@ -224,15 +224,15 @@ func Watch(args common.Command) {
 	PollDeployNew(id, "TODO: do this for a name instead of id")
 }
 
-// Exploud -> Expload the app to the cloud. AKA deploy the app named in the args SecondPos
-func Exploud(args common.Command) {
+// Maestro -> Maestro the app to the cloud. AKA deploy the app named in the args SecondPos
+func Maestro(args common.Command) {
 	validateDeploymentArgsWithAmi(args)
 
 	app := args.SecondPos
 	env := args.ThirdPos
 	ami := args.FourthPos
 
-	latestAmi := ditto.LatestAmiFor(app)
+	latestAmi := baker.LatestAmiFor(app)
 
 	if ami == "" {
 		console.Confirmer(
@@ -246,7 +246,7 @@ func Exploud(args common.Command) {
 			fmt.Sprintf("The latest ami for this application is %s (version %s). Are you sure you wish to continue?", latestAmi.ImageId, latestAmi.Version))
 	}
 
-	deployUrl := fmt.Sprintf(exploudUrl("/applications/%s/%s/deploy"), app, env)
+	deployUrl := fmt.Sprintf(maestroUrl("/applications/%s/%s/deploy"), app, env)
 	deployRequest := AmiDeployRequest{ami, args.Message, args.Silent, props.Get("Username")}
 
 	DoDeployment(deployUrl, deployRequest, args)
@@ -259,7 +259,7 @@ func Pause(args common.Command) {
 	app := args.SecondPos
 	env := args.ThirdPos
 
-	pauseUrl := fmt.Sprintf(exploudUrl("/applications/%s/%s/pause"), app, env)
+	pauseUrl := fmt.Sprintf(maestroUrl("/applications/%s/%s/pause"), app, env)
 
 	fmt.Printf("Attempting to pause deployment of %s in %s\n", app, env)
 
@@ -273,7 +273,7 @@ func CancelPause(args common.Command) {
 	app := args.SecondPos
 	env := args.ThirdPos
 
-	pauseUrl := fmt.Sprintf(exploudUrl("/applications/%s/%s/pause"), app, env)
+	pauseUrl := fmt.Sprintf(maestroUrl("/applications/%s/%s/pause"), app, env)
 
 	fmt.Printf("Attempting to cancel pause of %s in %s\n", app, env)
 
@@ -287,7 +287,7 @@ func Resume(args common.Command) {
 	app := args.SecondPos
 	env := args.ThirdPos
 
-	resumeUrl := fmt.Sprintf(exploudUrl("/applications/%s/%s/resume"), app, env)
+	resumeUrl := fmt.Sprintf(maestroUrl("/applications/%s/%s/resume"), app, env)
 
 	fmt.Printf("Attempting to resume deployment of %s in %s\n", app, env)
 
@@ -301,13 +301,13 @@ func Undo(args common.Command) {
 	app := args.SecondPos
 	env := args.ThirdPos
 
-	deployUrl := fmt.Sprintf(exploudUrl("/applications/%s/%s/undo"), app, env)
+	deployUrl := fmt.Sprintf(maestroUrl("/applications/%s/%s/undo"), app, env)
 	deployRequest := DeployRequest{args.Message, args.Silent, props.Get("Username")}
 
 	DoDeployment(deployUrl, deployRequest, args)
 }
 
-// Exploud -> Expload the app to the cloud. AKA deploy the app named in the args SecondPos
+// Maestro -> Maestro the app to the cloud. AKA deploy the app named in the args SecondPos
 // Must pass SecondPos and Ami arguments
 func Rollback(args common.Command) {
 	validateDeploymentArgsWithMessage(args)
@@ -315,7 +315,7 @@ func Rollback(args common.Command) {
 	app := args.SecondPos
 	env := args.ThirdPos
 
-	deployUrl := fmt.Sprintf(exploudUrl("/applications/%s/%s/rollback"), app, env)
+	deployUrl := fmt.Sprintf(maestroUrl("/applications/%s/%s/rollback"), app, env)
 	deployRequest := DeployRequest{args.Message, args.Silent, props.Get("Username")}
 
 	DoDeployment(deployUrl, deployRequest, args)
@@ -323,7 +323,7 @@ func Rollback(args common.Command) {
 
 // Returns the status of the deployment with the supplied id
 func GetDeploymentStatus(deploymentId string, retries int) string {
-	url := exploudUrl(fmt.Sprintf("/deployments/%s", deploymentId))
+	url := maestroUrl(fmt.Sprintf("/deployments/%s", deploymentId))
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -359,7 +359,7 @@ func PrintStatus(taskId string, serviceName string, status string) {
 	fmt.Println("")
 	console.Red()
 	console.Bold()
-	fmt.Print(fmt.Sprintf("%30s", "Explouding "+serviceName+": "))
+	fmt.Print(fmt.Sprintf("%30s", "Maestroing "+serviceName+": "))
 	console.Green()
 	fmt.Println(taskId)
 
@@ -379,7 +379,7 @@ func PrintStatus(taskId string, serviceName string, status string) {
 // if lastTime is blank then return all logs
 // Returns the new lastTime
 func PrintNewDeploymentLogs(deploymentId string, lastTime string) string {
-	url := exploudUrl(fmt.Sprintf("/deployments/%s/logs", deploymentId))
+	url := maestroUrl(fmt.Sprintf("/deployments/%s/logs", deploymentId))
 	if lastTime != "" {
 		url += "?since=" + lastTime
 	}
@@ -431,9 +431,9 @@ func PollDeployNew(deploymentId string, serviceName string) {
 	console.Reset()
 }
 
-// Register a new application with exploud, should have the knock on effect
-// of registering with the other applications that exploud depends upon e.g.
-// onix and tyranitar
+// Register a new application with maestro, should have the knock on effect
+// of registering with the other applications that maestro depends upon e.g.
+// lister and tyrant
 func CreateApp(args common.Command) {
 	if args.SecondPos == "" || strings.Index(args.SecondPos, "-") == 0 {
 		console.Fail("Must supply an application name as second positional argument")
@@ -444,16 +444,16 @@ func CreateApp(args common.Command) {
 	}
 
 	fmt.Printf(
-		"Calling exploud to create application %s with email: %s",
+		"Calling maestro to create application %s with email: %s",
 		args.SecondPos,
 		args.Email,
 	)
 
 	createBody := CreateAppRequest{args.Email}
 
-	response := common.PutJson(exploudUrl("/applications/"+args.SecondPos), createBody)
+	response := common.PutJson(maestroUrl("/applications/"+args.SecondPos), createBody)
 
-	fmt.Println("Exploud has created our application for us!")
+	fmt.Println("Maestro has created our application for us!")
 	fmt.Println(response)
 }
 
@@ -499,7 +499,7 @@ func HandleDeployInterrupt() chan os.Signal {
 			fmt.Println(sig)
 			switch cancelDeploymentPerchance() {
 			case Yes:
-				fmt.Println("This will rollback the deployment when exploud is ready!")
+				fmt.Println("This will rollback the deployment when maestro is ready!")
 				os.Exit(0)
 			case No:
 				fmt.Println("Not rollingback. Just exiting. Your deployment will continue.")

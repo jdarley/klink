@@ -8,15 +8,15 @@ import (
 	common "mixrad.io/klink/common"
 	complete "mixrad.io/klink/complete"
 	console "mixrad.io/klink/console"
-	ditto "mixrad.io/klink/ditto"
+	baker "mixrad.io/klink/baker"
 	doctor "mixrad.io/klink/doctor"
-	exploud "mixrad.io/klink/exploud"
+	maestro "mixrad.io/klink/maestro"
 	flags "mixrad.io/klink/flags"
 	git "mixrad.io/klink/git"
 	jenkins "mixrad.io/klink/jenkins"
-	onix "mixrad.io/klink/onix"
+	lister "mixrad.io/klink/lister"
 	props "mixrad.io/klink/props"
-	shuppet "mixrad.io/klink/shuppet"
+	pedant "mixrad.io/klink/pedant"
 	ssh "mixrad.io/klink/ssh"
 	update "mixrad.io/klink/update"
 )
@@ -59,13 +59,13 @@ func init() {
 	// namesapce. Go doesn't allow, or encourage, this kind of aspecty metaprogramming
 	campfire.Init()
 	complete.Init()
-	ditto.Init()
+	baker.Init()
 	doctor.Init()
-	exploud.Init()
+	maestro.Init()
 	git.Init()
 	jenkins.Init()
-	onix.Init()
-	shuppet.Init()
+	lister.Init()
+	pedant.Init()
 	ssh.Init()
 	update.Init()
 }

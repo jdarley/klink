@@ -1,4 +1,4 @@
-package onix
+package lister
 
 import (
 	"encoding/json"
@@ -14,19 +14,19 @@ import (
 
 func Init() {
 	common.Register(
-		common.Component{"register-app-onix", CreateApp,
-			"{app} Creates a new application in onix only", "APPS"},
+		common.Component{"register-app-lister", CreateApp,
+			"{app} Creates a new application in lister only", "APPS"},
 		common.Component{"info", Info,
 			"{app} Return information about the application", "APPS"},
-		common.Component{"add-onix-prop", AddProperty,
-			"{app} {name} {value} Adds an onix property (json)", "APPS|PROPNAMES"},
-		common.Component{"get-onix-prop", GetPropertyFromArgs,
+		common.Component{"add-lister-prop", AddProperty,
+			"{app} {name} {value} Adds an lister property (json)", "APPS|PROPNAMES"},
+		common.Component{"get-lister-prop", GetPropertyFromArgs,
 			"{app} {property-name} get the property for the application", "APPS"},
 		common.Component{"status", Status,
 			"{app} Checks the status of the app", "APPS"},
 		common.Component{"apps", ListApps,
-			"Lists the applications that exist (via exploud)", "APPS"},
-		common.Component{"delete-onix-prop", DeleteProperty,
+			"Lists the applications that exist (via maestro)", "APPS"},
+		common.Component{"delete-lister-prop", DeleteProperty,
 			"{app} {property-name} Delete the property for the application", "APPS"})
 }
 
@@ -34,13 +34,13 @@ type App struct {
 	Name string `json:"name"`
 }
 
-func onixUrl(end string) string {
+func listerUrl(end string) string {
 	return conf.ListerUrl + end
 }
 
-// Return the list of apps that are known about by onix
+// Return the list of apps that are known about by lister
 func GetApps() []string {
-	apps, err := common.GetAsJsonq(onixUrl("/applications")).ArrayOfStrings("applications")
+	apps, err := common.GetAsJsonq(listerUrl("/applications")).ArrayOfStrings("applications")
 	if err != nil {
 		panic(err)
 	}
@@ -51,12 +51,12 @@ func GetCommonPropertyNames() []string {
 	return []string{"bakeType", "baker", "customBakeCommands", "jobsPath", "releasePath", "srcRepo", "servicePathPoke", "statusPath", "testPath"}
 }
 
-// List the apps known about by onix
+// List the apps known about by lister
 func ListApps(args common.Command) {
 	fmt.Println(strings.Join(GetApps(), "\n"))
 }
 
-// Create a new application in onix
+// Create a new application in lister
 func CreateApp(args common.Command) {
 	if args.SecondPos == "" {
 		console.Fail("Must supply an application name as second positional argument")
@@ -64,20 +64,20 @@ func CreateApp(args common.Command) {
 
 	createBody := App{args.SecondPos}
 
-	response := common.PostJson(onixUrl("/applications"), createBody)
+	response := common.PostJson(listerUrl("/applications"), createBody)
 
-	fmt.Println("Onix has created our application for us!")
+	fmt.Println("Lister has created our application for us!")
 	fmt.Println(response)
 }
 
 // Returns true if the app exists
 func AppExists(appName string) bool {
-	return common.Head(onixUrl("/applications/" + appName))
+	return common.Head(listerUrl("/applications/" + appName))
 }
 
-// Returns all information stored in onix about the supplied application
+// Returns all information stored in lister about the supplied application
 func Info(args common.Command) {
-	console.MaybeJQS(common.GetString(onixUrl("/applications/" + args.SecondPos)))
+	console.MaybeJQS(common.GetString(listerUrl("/applications/" + args.SecondPos)))
 }
 
 func ToJsonValue(in string) (string, error) {
@@ -115,7 +115,7 @@ func AddProperty(args common.Command) {
 		}
 	}
 
-	fmt.Println(common.PutString(onixUrl("/applications/"+app+"/"+name),
+	fmt.Println(common.PutString(listerUrl("/applications/"+app+"/"+name),
 		valueString))
 }
 
@@ -129,7 +129,7 @@ func EnsureProp(jq *jsonq.JsonQuery, app string, name string) string {
 				app,
 				name,
 			)
-			console.Fail(fmt.Sprintf("klink add-onix-prop %s %s 'value'\n",
+			console.Fail(fmt.Sprintf("klink add-lister-prop %s %s 'value'\n",
 				app, name))
 		}
 		// this is the only way to get a string from an arbitary type in go...
@@ -144,7 +144,7 @@ func Status(args common.Command) {
 		console.Fail("Must supply application name as a second positional argument")
 	}
 
-	jq := common.GetAsJsonq(onixUrl("/applications/" + app))
+	jq := common.GetAsJsonq(listerUrl("/applications/" + app))
 
 	statusUrl := EnsureProp(jq, app, "servicePathPoke") + EnsureProp(jq, app, "statusPath")
 	fmt.Printf("Checking status at: %s\n", statusUrl)
@@ -155,12 +155,12 @@ func Status(args common.Command) {
 }
 
 func GetProperty(app string, name string) string {
-	jq := common.GetAsJsonq(onixUrl("/applications/" + app))
+	jq := common.GetAsJsonq(listerUrl("/applications/" + app))
 	return EnsureProp(jq, app, name)
 }
 
 func GetOptionalProperty(app string, name string) string {
-	jq := common.GetAsJsonq(onixUrl("/applications/" + app))
+	jq := common.GetAsJsonq(listerUrl("/applications/" + app))
 	str, err := jq.String("metadata", name)
 	if err != nil {
 		obj, err := jq.Interface("metadata", name)
@@ -196,16 +196,16 @@ func DeleteProperty(args common.Command) {
 		console.Fail("You forgot to pass the property name")
 	}
 
-	common.Delete(onixUrl("/applications/" + app + "/" + name))
+	common.Delete(listerUrl("/applications/" + app + "/" + name))
 
 	console.Green()
 	fmt.Println("Success!")
 	console.Reset()
 }
 
-// Get the list of environments from onix
-func EnvironmentsFromOnix() []string {
-	envs, err := common.GetAsJsonq(onixUrl("/environments")).ArrayOfStrings("environments")
+// Get the list of environments from lister
+func EnvironmentsFromLister() []string {
+	envs, err := common.GetAsJsonq(listerUrl("/environments")).ArrayOfStrings("environments")
 	if err != nil {
 		panic("Unable to parse response getting environments :-(")
 	}
@@ -214,17 +214,17 @@ func EnvironmentsFromOnix() []string {
 
 // Returns a list of available environments, accepts an environment
 // if that environment isn't known then go and ge the list from
-// onix
+// lister
 func GetEnvironments(env string) []string {
 	environments := props.GetEnvironments()
 	if !common.Contains(environments, env) {
-		environments = EnvironmentsFromOnix()
+		environments = EnvironmentsFromLister()
 		props.SetEnvironments(environments)
 	}
 	return environments
 }
 
-// Returns true if the environment is known by onix
+// Returns true if the environment is known by lister
 func KnownEnvironment(env string) bool {
 	return common.Contains(GetEnvironments(env), env)
 }

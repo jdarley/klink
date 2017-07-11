@@ -6,15 +6,15 @@ import (
 
 	common "mixrad.io/klink/common"
 	console "mixrad.io/klink/console"
-	onix "mixrad.io/klink/onix"
+	lister "mixrad.io/klink/lister"
 )
 
 func Init() {
 	common.Register(
-		common.Component{"clone-tyr", CloneTyranitar,
-			"{app} {env - optional} clone the tyranitar properties for an app into pwd", "APPS"},
-		common.Component{"clone-shuppet", CloneShuppet,
-			"{app} {env - optional} clone the shuppet properties for an app into pwd", "APPS|ENVS"},
+		common.Component{"clone-tyr", CloneTyrant,
+			"{app} {env - optional} clone the tyrant properties for an app into pwd", "APPS"},
+		common.Component{"clone-pedant", ClonePedant,
+			"{app} {env - optional} clone the pedant properties for an app into pwd", "APPS|ENVS"},
 		common.Component{"clone", CloneService,
 			"{app} clone the application into pwd", "APPS"},
 		common.Component{"gist", Gist,
@@ -35,11 +35,11 @@ func envName(args common.Command) string {
 	return args.ThirdPos
 }
 
-func gitUrlTyranitar(app string, env string) string {
+func gitUrlTyrant(app string, env string) string {
 	return fmt.Sprintf("git@github.brislabs.com:tyranitar/%s-%s.git", app, env)
 }
 
-func gitUrlShuppet(app string) string {
+func gitUrlPedant(app string) string {
 	return fmt.Sprintf("git@github.brislabs.com:shuppet/%s.git", app)
 }
 
@@ -51,28 +51,28 @@ func gitClone(path string) {
 	fmt.Println(string(out))
 }
 
-// Clone the tyranitar properties for the supplied app
-func CloneTyranitar(args common.Command) {
+// Clone the tyrant properties for the supplied app
+func CloneTyrant(args common.Command) {
 	app := appName(args)
 	env := envName(args)
 
 	if env == "all" {
-		gitClone(gitUrlTyranitar(app, "poke"))
-		gitClone(gitUrlTyranitar(app, "prod"))
+		gitClone(gitUrlTyrant(app, "poke"))
+		gitClone(gitUrlTyrant(app, "prod"))
 	} else {
-		gitClone(gitUrlTyranitar(app, env))
+		gitClone(gitUrlTyrant(app, env))
 	}
 }
 
-// Clone the shuppet properties for the supplied app
-func CloneShuppet(args common.Command) {
+// Clone the pedant properties for the supplied app
+func ClonePedant(args common.Command) {
 	app := appName(args)
-	gitClone(gitUrlShuppet(app))
+	gitClone(gitUrlPedant(app))
 }
 
 func CloneService(args common.Command) {
 	app := args.SecondPos
 
-	path := onix.GetProperty(app, "srcRepo")
+	path := lister.GetProperty(app, "srcRepo")
 	gitClone(path)
 }

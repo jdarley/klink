@@ -8,8 +8,8 @@ import (
 
 	common "mixrad.io/klink/common"
 	console "mixrad.io/klink/console"
-	ditto "mixrad.io/klink/ditto"
-	onix "mixrad.io/klink/onix"
+	baker "mixrad.io/klink/baker"
+	lister "mixrad.io/klink/lister"
 	props "mixrad.io/klink/props"
 )
 
@@ -33,21 +33,21 @@ func stringsToFile(path string, contents []string) {
 	ioutil.WriteFile(filePath(path), []byte(strings.Join(contents, "\n")), 0644)
 }
 
-// generate the environments from onix, passing not found forces a refresh
+// generate the environments from lister, passing not found forces a refresh
 func generateEnvs() {
 	fmt.Println("Generating environment file")
-	stringsToFile("/envs", onix.GetEnvironments("notfound"))
+	stringsToFile("/envs", lister.GetEnvironments("notfound"))
 }
 
 func generatePropertyNames() {
 	fmt.Println("Generating common property names")
-	stringsToFile("/propnames", onix.GetCommonPropertyNames())
+	stringsToFile("/propnames", lister.GetCommonPropertyNames())
 }
 
-// generate the app list from onix
+// generate the app list from lister
 func generateApps() {
 	fmt.Println("Generating app file")
-	stringsToFile("/apps", onix.GetApps())
+	stringsToFile("/apps", lister.GetApps())
 }
 
 // generate a list of campfire rooms
@@ -56,10 +56,10 @@ func generateRooms() {
 	stringsToFile("/rooms", console.Rooms())
 }
 
-// autocomplete options just for klink ditto. what fun!
-func generateDittoHelpers() {
-	fmt.Println("Generating ditto helpers")
-	stringsToFile("/dittos", ditto.HelperNames())
+// autocomplete options just for klink baker. what fun!
+func generateBakerHelpers() {
+	fmt.Println("Generating baker helpers")
+	stringsToFile("/baker", baker.HelperNames())
 }
 
 // generate the list of all klink commands
@@ -113,8 +113,8 @@ function get_complete {
         "ROOMS")
             COMPREPLY=($(compgen -W "$(cat $kpath/rooms)" -- $cur))
             ;;
-        "DITTOS")
-            COMPREPLY=($(compgen -W "$(cat $kpath/dittos)" -- $cur))
+        "BAKERS")
+            COMPREPLY=($(compgen -W "$(cat $kpath/bakers)" -- $cur))
             ;;
         "PROPNAMES")
             COMPREPLY=($(compgen -W "$(cat $kpath/propnames)" -- $cur))
@@ -191,7 +191,7 @@ func GenComplete(_ common.Command) {
 	generateApps()
 	generatePropertyNames()
 	generateRooms()
-	generateDittoHelpers()
+	generateBakerHelpers()
 	generateCommands()
 	generateCommandArgs()
 	generateScript()

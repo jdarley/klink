@@ -11,8 +11,8 @@ import (
 	jsonq "github.com/jmoiron/jsonq"
 	common "mixrad.io/klink/common"
 	console "mixrad.io/klink/console"
-	exploud "mixrad.io/klink/exploud"
-	onix "mixrad.io/klink/onix"
+	maestro "mixrad.io/klink/maestro"
+	lister "mixrad.io/klink/lister"
 	props "mixrad.io/klink/props"
 )
 
@@ -67,14 +67,14 @@ func SSH(args common.Command) {
 	if app == "" {
 		console.Fail("You must supply an app as the second positional argument")
 	}
-	if !onix.KnownEnvironment(env) {
+	if !lister.KnownEnvironment(env) {
 		fmt.Println(fmt.Sprintf("env not supplied or incorrect, setting to poke. %s",
 			props.GetEnvironments()))
 		env = "poke"
 	}
 
 	boxesArray := make([]interface{}, 1000)
-	exploud.JsonBoxes(app, env, boxesArray)
+	maestro.JsonBoxes(app, env, boxesArray)
 
 	if id == "" {
 		ip := chooseSSH(boxesArray)
