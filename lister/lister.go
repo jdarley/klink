@@ -19,7 +19,7 @@ func Init() {
 		common.Component{"info", Info,
 			"{app} Return information about the application", "APPS"},
 		common.Component{"add-lister-prop", AddProperty,
-			"{app} {name} {value} Adds an lister property (json)", "APPS|PROPNAMES"},
+			"{app} {name} {value} Adds a lister property (json)", "APPS|PROPNAMES"},
 		common.Component{"get-lister-prop", GetPropertyFromArgs,
 			"{app} {property-name} get the property for the application", "APPS"},
 		common.Component{"status", Status,
